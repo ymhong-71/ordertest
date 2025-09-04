@@ -1,0 +1,65 @@
+name: github-action
+run-name: ${{ github.actor }} is out building GitHub Actions
+
+on:
+  push:
+    # Pattern matched against refs/tags
+    tags:        
+      - '**' 
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build Maven Projects
+        run: |
+          mvn clean package -f ./order/pom.xml
+          mvn clean package -f ./shipment/pom.xml
+          mvn clean package -f ./BoundedContext904.1095890410959/pom.xml
+
+      - name: Docker Build and push for Order
+        uses: docker/build-push-action@v4
+        with:
+          context: ./order
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/order:latest
+            ghcr.io/${{ github.repository }}/order:${{ github.ref_name }}
+            
+      - name: Docker Build and push for Shipment
+        uses: docker/build-push-action@v4
+        with:
+          context: ./shipment
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/shipment:latest
+            ghcr.io/${{ github.repository }}/shipment:${{ github.ref_name }}
+            
+      - name: Docker Build and push for BoundedContext904_1095890410959
+        uses: docker/build-push-action@v4
+        with:
+          context: ./BoundedContext904.1095890410959
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/boundedcontext904.1095890410959:latest
+            ghcr.io/${{ github.repository }}/boundedcontext904.1095890410959:${{ github.ref_name }}
+            
